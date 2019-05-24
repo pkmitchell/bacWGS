@@ -86,14 +86,14 @@ for file in fqc_files:
 							stem=name_comps[0]
 							direction=dirdict[name_comps[1][0]]
 				elif comps[0] == "Total Sequences":
-					totseq = float(comps[1])
+					totseq = int(comps[1])
 	if len(set([qreadsum, lreadsum, totseq])) == 1:
 		nreads = totseq
 	else:
 		nreads == "?"
-	alen = lensum/lreadsum
-	avgQ = qscoresum/qreadsum
-	q30 = q30readsum/qreadsum
+	alen = round(lensum/lreadsum, 2)
+	avgQ = round(qscoresum/qreadsum, 2)
+	q30 = round((q30readsum/qreadsum) * 100, 2)
 	sys.stdout.write(stem + "\t" + direction + "\t" + str(nreads) + "\t" + str(alen) + "\t" + str(avgQ) + "\t" + str(q30) + "\n")
 	
 sys.stdout.write("\n")
