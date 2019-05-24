@@ -91,9 +91,9 @@ for file in fqc_files:
 		nreads = totseq
 	else:
 		nreads == "?"
-	alen = round(lensum/lreadsum, 2)
-	avgQ = round(qscoresum/qreadsum, 2)
-	q30 = round((q30readsum/qreadsum) * 100, 2)
+	alen = "%.2f" % (lensum/lreadsum)
+	avgQ = "%.2f" % (qscoresum/qreadsum)
+	q30 = "%.2f" % ((q30readsum/qreadsum) * 100)
 	sys.stdout.write(stem + "\t" + direction + "\t" + str(nreads) + "\t" + str(alen) + "\t" + str(avgQ) + "\t" + str(q30) + "\n")
 	
 sys.stdout.write("\n")
