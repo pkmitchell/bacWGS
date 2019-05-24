@@ -19,3 +19,15 @@ If reads meet QC standards, proceed using the forward read only as input for bac
  5. ***Salmonella* Serotype Prediction**: Runs *Salmonella* serotyping using SISTR. Enabled using the --salm_sero (-s) flag.
  
  6. ***E. coli* Serotype Prediction**: Runs *E. coli* serotyping using ectyper. Enabled using the --ecol_sero (-e) flag.
+ 
+ ## Dependencies
+ **NOTE**: Version numbers are those in the original conda environment. Other versions may or may not work.
+ 
+ FastQC 0.11.8\
+ Trimmomatic 0.39\
+ SPAdes 3.13.0\
+ Quast 5.0.2\
+ BBMap 38.45\
+ ABRicate 0.8.13 (only needed for ARG screening)\
+ sistr_cmd 1.0.2 (only needed for _Salmonella_ serotyping)\
+ ectyper 0.8.1 (only needed for _E. coli_ serotyping)
