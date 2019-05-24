@@ -1,9 +1,9 @@
 name: bacWGS
 channels:
-  - bioconda
-  - r
-  - defaults
   - conda-forge
+  - bioconda
+  - defaults
+  - r
 dependencies:
   - abricate=0.8.13=h1341992_0
   - asn1crypto=0.24.0=py35_0
@@ -18,15 +18,14 @@ dependencies:
   - boost=1.67.0=py35_4
   - bowtie2=2.3.4.3=py35h2d50403_0
   - bzip2=1.0.6=h14c3975_5
-  - ca-certificates=2019.1.23=0
+  - ca-certificates=2019.3.9=hecc5488_0
   - cairo=1.14.12=h8948797_3
   - capnproto=0.6.1=hfc679d8_1
-  - certifi=2018.8.24=py35_1
+  - certifi=2018.8.24=py35_1001
   - cffi=1.11.5=py35he75722e_1
   - chardet=3.0.4=py35_1
   - circos=0.69.6=4
   - clustalw=2.1=h6bb024c_3
-  - confindr=0.7.0=py_0
   - cryptography=2.3.1=py35hc365091_0
   - curl=7.61.0=h84994c4_0
   - cycler=0.10.0=py35hc4d5149_0
@@ -100,7 +99,7 @@ dependencies:
   - olefile=0.46=py35_0
   - openblas=0.2.19=0
   - openjdk=8.0.152=h46b5887_1
-  - openssl=1.0.2r=h7b6447c_0
+  - openssl=1.0.2r=h14c3975_0
   - paml=4.9=h14c3975_4
   - pandas=0.23.4=py35h04863e7_0
   - pango=1.42.4=h049681c_0

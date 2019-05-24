@@ -6,6 +6,7 @@ import time
 from subprocess import call
 import argparse
 import re
+import multiprocessing as mp
 
 '''
 -TODO: Add resource multiplier option? -Rebuild such that resource allocation is per job, then set soft caps (give myself option to override?)
@@ -33,6 +34,10 @@ args = parser.parse_args()
 
 #Determining the number of jobs and threads per job
 ncpus = args.threads #The total number of CPUs to be used simultaneously across all jobs
+tot_cpus = mp.cpu_count()
+if ncpus > tot_cpus:
+	ncpus = tot_cpus
+
 njobs = args.jobs #The number of jobs to be run simultaneously
 totjobs = len(args.Fastq) #The total number of input sequences, which is also the total number of jobs to run
 
