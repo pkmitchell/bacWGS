@@ -8,23 +8,9 @@ import argparse
 import re
 
 '''
-CHANGES
--Changed default resource allocation to be functional for a single isolate
--Added Illuminaclip NexteraPE to default trimming
--Added option for AMR screening
--Added option for Salmonella serotyping
--Added option of E. coli serotyping
--Automated removal of unpaired reads following trimming
--Automated concatenation of assembly statistics into single file
--
--TODO: Echo versions to log
 -TODO: Add resource multiplier option? -Rebuild such that resource allocation is per job, then set soft caps (give myself option to override?)
 -TODO: More cleanup: trimmed reads, spades corrected reads/other spades output aside from the assembly
--TODO: Replace absolute path program calls with setting environment to include in path in submission script
 -TODO: Long-term - use python multithreading rather than perl_fork_univ
--TODO: Add bbmap coverage stats
--TODO: Add fastqc step with QC metrics - Run first/separately, check if okay, then proceed? No, do in biopython, integrated into the job loop
--TODOING: Change thresholds to 85% identity, 50% coverage (set as defaults, allow to be modified)
 '''
 
 #Argument Parser
@@ -121,7 +107,8 @@ ss.write("source activate bacWGS\n\n")
 if args.no_trim == False:
 	ss.write("echo \"trimmomatic $(trimmomatic -version)\" >>software_versions_" + strT + ".txt\n")
 ss.write("spades.py -v >>software_versions_" + strT + ".txt\n")
-ss.write("perl_fork_univ.pl " + fn1 + " " + str(njobs) + " &>" + fn1 + ".log \n")
+ss.write("quast.py -v >>software_versions_" + strT + ".txt\n")
+ss.write("\nperl_fork_univ.pl " + fn1 + " " + str(njobs) + " &>" + fn1 + ".log \n")
 ss.write("(head -n 1 " + prefs[0] + "/transposed_report.tsv && cat assembly_stats_nohead.tsv) >assembly_stats.tsv && rm assembly_stats_nohead.tsv\n")
 if args.no_qc == False:
 	ss.write("\nbbmap.sh --version 2>&1 >/dev/null| sed -n -e 's/^.*BBMap version /BBMap /p' >>software_versions_" + strT + ".txt\n")
