@@ -84,7 +84,7 @@ for file in fqc_files:
 						if mtch2:
 							name_comps=fname.split(sep="_")
 							stem=name_comps[0]
-							direction=dirdict[name_comps[1][0]]
+							direction=dirdict[name_comps[-1][0]]
 				elif comps[0] == "Total Sequences":
 					totseq = int(comps[1])
 	if len(set([qreadsum, lreadsum, totseq])) == 1:
