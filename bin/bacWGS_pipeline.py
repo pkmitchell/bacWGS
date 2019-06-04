@@ -65,7 +65,7 @@ strT = time.strftime("%Y%m%d_%H%M%S")
 #This creates an input file for perl_fork_univ.pl with one line per input sequence
 #It is then called by the launch script generated in the next step
 
-fn1="SPAdeSub_" + strT
+fn1="joblist_" + strT
 ns=open(fn1,'w')
 
 prefs = []
@@ -102,7 +102,7 @@ ns.close()
  
 #This step generates the bash script to set the environment and launch perl_fork_univ.pl, calling the previously generated input file 
 
-fn2="./LaunchSPAdes_" + strT + ".sh"
+fn2="./LaunchJobs_" + strT + ".sh"
 ss=open(fn2, 'w')
 
 ss.write("#!/bin/bash \n")
