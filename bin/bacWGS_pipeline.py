@@ -15,7 +15,7 @@ import multiprocessing as mp
 '''
 
 #Argument Parser
-parser = argparse.ArgumentParser(description="Assemble genomes using SPAdes, or generate scripts to do so but do not submit immediately")
+parser = argparse.ArgumentParser(description="Assemble genomes using SKESA (or, optionally, SPAdes), or generate scripts to do so but do not submit immediately")
 parser.add_argument("-l", "--launch", help="Launch job now (Default = Off)", action="store_true")
 parser.add_argument("-t", "--no_trim", help="Turn off default read trimming (trimmomatic ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 SLIDINGWINDOW:4:20)", action="store_true")
 parser.add_argument("-q", "--no_qc", help="Turn off default mapping/assembly QC output", action="store_true")
@@ -28,6 +28,7 @@ parser.add_argument("-e", "--ecol_sero", help="Run E. coli serotype prediction o
 parser.add_argument("-p", "--threads", help="Maximum number of processors to use (Default = 4)", type = int, default=4)
 parser.add_argument("-n", "--jobs", help="Maximum number of jobs to run simultaneously, equivalent to perl_fork_univ.pl argument (Default = 1)", type = int, default=1)
 parser.add_argument("-m", "--max_mem", help="Maximum total memory allocation to simultaneous processes in GB (Default = 24)", type = int, default=24)
+parser.add_argument("-d", "--spades", help="Use SPAdes instead of SKESA for assembly (Default = Off)", action="store_true")
 parser.add_argument("Fastq", help="Input forward fastqs to be assembled", nargs='+')
 args = parser.parse_args()
 
@@ -87,11 +88,21 @@ for i in range(0, totjobs):
 	if args.no_trim == False:
 		ns.write("trimmomatic PE -threads " + str(threadsper) + " -phred33 " + fs + " " + rs + " trim_" + prefix + "_1.fastq.gz unpaired_" + prefix + "_1.fastq.gz trim_" + prefix + "_2.fastq.gz unpaired_" + prefix + "_2.fastq.gz ILLUMINACLIP:/workdir/miniconda3/envs/bacWGS/share/trimmomatic/adapters/NexteraPE-PE.fa:2:30:10 SLIDINGWINDOW:4:20 &>trim_" + prefix + ".log &&")
 		ns.write(" rm unpaired_" + prefix + "_1.fastq.gz unpaired_" + prefix + "_2.fastq.gz &&")
-		ns.write(" spades.py --pe1-1 " + "trim_" + prefix + "_1.fastq.gz --pe1-2 trim_" + prefix + "_2.fastq.gz -o ./" + prefix + "/ --careful -t " + str(threadsper) + " -m " + str(memper) + " &&") 
+		if args.spades == True:
+			ns.write(" spades.py --pe1-1 " + "trim_" + prefix + "_1.fastq.gz --pe1-2 trim_" + prefix + "_2.fastq.gz -o ./" + prefix + "/ --careful -t " + str(threadsper) + " -m " + str(memper) + " &&")
+			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + "/contigs.fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv &&")
+			ns.write(" mv " + prefix + "/contigs.fasta ./" + prefix + ".fasta && mv " + prefix + "/spades.log ./" + prefix + "_spades.log")
+		else:
+			ns.write(" skesa --cores " + str(threadsper) + " --memory " + str(memper) + " --fastq " + "trim_" + prefix + "_1.fastq.gz " + prefix + "_2.fastq.gz >" + prefix + ".fasta 2>" + prefix + "_skesa.log &&")
+			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + ".fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv &&")
 	else:
-		ns.write(" spades.py --pe1-1 " + fs + " --pe1-2 " + rs + " -o ./" + prefix + "/ --careful -t " + str(threadsper) + " -m " + str(memper) + " &&")
-	ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + "/contigs.fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv &&")
-	ns.write(" mv " + prefix + "/contigs.fasta ./" + prefix + ".fasta && mv " + prefix + "/spades.log ./" + prefix + "_spades.log")
+		if args.spades == True:
+			ns.write(" spades.py --pe1-1 " + fs + " --pe1-2 " + rs + " -o ./" + prefix + "/ --careful -t " + str(threadsper) + " -m " + str(memper) + " &&")
+			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + "/contigs.fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv")
+			ns.write(" mv " + prefix + "/contigs.fasta ./" + prefix + ".fasta && mv " + prefix + "/spades.log ./" + prefix + "_spades.log")
+		else:
+			ns.write(" skesa --cores " + str(threadsper) + " --memory " + str(memper) + " --fastq " + fs + " " + rs + " >" + prefix + ".fasta 2>" + prefix + "_skesa.log &&")
+			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + ".fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv")
 	if args.no_qc == False:
 		ns.write(" && bbmap.sh nodisk ref=" + prefix + ".fasta in1=" + fs + " in2=" + rs + " covstats=" + prefix + "_covstats.txt t=" + str(threadsper) + " &>" + prefix + "_bbmap.log")
 	if args.amr:
@@ -111,7 +122,10 @@ ss.write("export PATH=/workdir/miniconda3/bin:$PATH\n\n")
 ss.write("source activate bacWGS\n\n")
 if args.no_trim == False:
 	ss.write("echo \"trimmomatic $(trimmomatic -version)\" >>software_versions_" + strT + ".txt\n")
-ss.write("spades.py -v >>software_versions_" + strT + ".txt\n")
+if args.spades == True:
+	ss.write("spades.py -v >>software_versions_" + strT + ".txt\n")
+else:
+	ss.write("skesa -v >>software_versions_" + strT + ".txt\n")
 ss.write("quast.py -v >>software_versions_" + strT + ".txt\n")
 ss.write("\nperl_fork_univ.pl " + fn1 + " " + str(njobs) + " &>" + fn1 + ".log \n")
 ss.write("(head -n 1 " + prefs[0] + "/transposed_report.tsv && cat assembly_stats_nohead.tsv) >assembly_stats.tsv && rm assembly_stats_nohead.tsv\n")
