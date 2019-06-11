@@ -93,7 +93,7 @@ for i in range(0, totjobs):
 			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + "/contigs.fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv &&")
 			ns.write(" mv " + prefix + "/contigs.fasta ./" + prefix + ".fasta && mv " + prefix + "/spades.log ./" + prefix + "_spades.log")
 		else:
-			ns.write(" skesa --cores " + str(threadsper) + " --memory " + str(memper) + " --fastq " + "trim_" + prefix + "_1.fastq.gz " + prefix + "_2.fastq.gz >" + prefix + ".fasta 2>" + prefix + "_skesa.log &&")
+			ns.write(" skesa --cores " + str(threadsper) + " --memory " + str(memper) + " --fastq " + "trim_" + prefix + "_1.fastq.gz trim_" + prefix + "_2.fastq.gz >" + prefix + ".fasta 2>" + prefix + "_skesa.log &&")
 			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + ".fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv &&")
 	else:
 		if args.spades == True:
