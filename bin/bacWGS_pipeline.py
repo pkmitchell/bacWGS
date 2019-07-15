@@ -136,16 +136,18 @@ if args.no_qc == False:
 if args.amr:
 	ss.write("\nabricate -v >>software_versions_" + strT + ".txt\n")
 	abrfiles = [p + "_abricate_ncbi.tsv" for p in prefs]
-	ss.write("make_amr_table.py " + args.amr_table + " " + ' '.join(abrfiles) + " >ARG_table_" + strT + "\n")
+	ss.write("make_amr_table.py " + args.amr_table + " " + ' '.join(abrfiles) + " >ARG_table_" + strT + ".tsv\n")
 
 if args.salm_sero:
 	ss.write("\nsistr -V >>software_versions_" + strT + ".txt\n")
 	fastas = [p + ".fasta" for p in prefs]
 	ss.write("\nsistr --qc -f tab -t " + str(ncpus) + " -o Salm_seros_sistr_" + strT + " " + ' '.join(fastas) + " 2>Salm_seros_sistr_" + strT + ".log\n")
+	ss.write("cut -d$'\t' -f 7,14,15 Salm_seros_sistr_" + strT + ".tab >SALM_sero_" + strT + ".tsv\n")
 if args.ecol_sero:
 	ss.write("\nectyper -V >>software_versions_" + strT + ".txt\n")
 	fastas = [p + ".fasta" for p in prefs]
 	ss.write("\nectyper -i " + ','.join(fastas) + " --cores " + str(ncpus) + " --verify -o ectyper_out_" + strT + " &>ectyper_" + strT + ".log\n")
+	ss.write("cut -d$'\t' -f 1,2,3 ectyper_out_" + strT + "/output.tsv >ECOL_sero_" + strT + ".tsv\n")
 ss.write("conda deactivate")
 ss.close()
 call(["chmod", "u+x", fn2])
