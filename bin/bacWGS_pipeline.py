@@ -17,7 +17,7 @@ import multiprocessing as mp
 #Argument Parser
 parser = argparse.ArgumentParser(description="Assemble genomes using SKESA (or, optionally, SPAdes), or generate scripts to do so but do not submit immediately")
 parser.add_argument("-l", "--launch", help="Launch job now (Default = Off)", action="store_true")
-parser.add_argument("-t", "--no_trim", help="Turn off default read trimming (trimmomatic ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 SLIDINGWINDOW:4:20)", action="store_true")
+parser.add_argument("-t", "--trim", help="Turn on read trimming (trimmomatic ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 SLIDINGWINDOW:4:20)", action="store_true")
 parser.add_argument("-q", "--no_qc", help="Turn off default mapping/assembly QC output", action="store_true")
 parser.add_argument("-a", "--amr", help="Run AMR screeing on assemblies using ABRicate with NCBI database (Default = Off)", action="store_true")
 parser.add_argument("-r", "--amr_table", help="Path to AMR lookup table (Default = /workdir/miniconda3/envs/bacWGS/abricate_ncbi_table_050719.tsv)", default="/workdir/miniconda3/envs/bacWGS/abricate_ncbi_table_050719.tsv")
@@ -73,6 +73,7 @@ prefs = []
 
 for i in range(0, totjobs):
 	fs=args.Fastq[i]
+	rs=None
 	mtch= re.search(r'_R1_001.fastq',fs)
 	if mtch:
 		stem=re.split(r'_S[0-9][0-9]*_L001_R1_001.fastq', fs)[0]
@@ -85,7 +86,7 @@ for i in range(0, totjobs):
 	prefix=stem.split("/")[-1]
 	prefs.append(prefix)
 	
-	if args.no_trim == False:
+	if args.trim == True:
 		ns.write("trimmomatic PE -threads " + str(threadsper) + " -phred33 " + fs + " " + rs + " trim_" + prefix + "_1.fastq.gz unpaired_" + prefix + "_1.fastq.gz trim_" + prefix + "_2.fastq.gz unpaired_" + prefix + "_2.fastq.gz ILLUMINACLIP:/workdir/miniconda3/envs/bacWGS/share/trimmomatic/adapters/NexteraPE-PE.fa:2:30:10 SLIDINGWINDOW:4:20 &>trim_" + prefix + ".log &&")
 		ns.write(" rm unpaired_" + prefix + "_1.fastq.gz unpaired_" + prefix + "_2.fastq.gz &&")
 		if args.spades == True:
@@ -120,7 +121,7 @@ ss.write("#!/bin/bash \n")
 ss.write("\n")
 ss.write("export PATH=/workdir/miniconda3/bin:$PATH\n\n")
 ss.write("source activate bacWGS\n\n")
-if args.no_trim == False:
+if args.trim == True:
 	ss.write("echo \"trimmomatic $(trimmomatic -version)\" >>software_versions_" + strT + ".txt\n")
 if args.spades == True:
 	ss.write("spades.py -v >>software_versions_" + strT + ".txt\n")
