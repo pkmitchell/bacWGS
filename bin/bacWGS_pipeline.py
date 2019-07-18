@@ -10,7 +10,6 @@ import multiprocessing as mp
 
 '''
 -TODO: Add resource multiplier option? -Rebuild such that resource allocation is per job, then set soft caps (give myself option to override?)
--TODO: More cleanup: trimmed reads, spades corrected reads/other spades output aside from the assembly
 -TODO: Long-term - use python multithreading rather than perl_fork_univ
 '''
 
@@ -19,10 +18,7 @@ parser = argparse.ArgumentParser(description="Assemble genomes using SKESA (or, 
 parser.add_argument("-l", "--launch", help="Launch job now (Default = Off)", action="store_true")
 parser.add_argument("-t", "--trim", help="Turn on read trimming (trimmomatic ILLUMINACLIP:NexteraPE-PE.fa:2:30:10 SLIDINGWINDOW:4:20)", action="store_true")
 parser.add_argument("-q", "--no_qc", help="Turn off default mapping/assembly QC output", action="store_true")
-parser.add_argument("-a", "--amr", help="Run AMR screeing on assemblies using ABRicate with NCBI database (Default = Off)", action="store_true")
-parser.add_argument("-r", "--amr_table", help="Path to AMR lookup table (Default = /workdir/miniconda3/envs/bacWGS/abricate_ncbi_table_050719.tsv)", default="/workdir/miniconda3/envs/bacWGS/abricate_ncbi_table_050719.tsv")
-parser.add_argument("-c", "--mincov", help="Minimum percent coverage for AMR gene detection. Must be between 0 and 100 (Default = 50)", type = float, default=50.0)
-parser.add_argument("-i", "--minid", help="Minimum percent identity for AMR gene detection. Must be between 0 and 100 (Default = 85)", type = float, default=85.0)
+parser.add_argument("-a", "--amr", help="Run AMR screeing on assemblies using NCBI AMRFinder (Default = Off)", action="store_true")
 parser.add_argument("-s", "--salm_sero", help="Run Salmonella serotype prediction on assemblies using SISTR (Default = Off)", action="store_true")
 parser.add_argument("-e", "--ecol_sero", help="Run E. coli serotype prediction on assemblies using ectyper (Default = Off)", action="store_true")
 parser.add_argument("-p", "--threads", help="Maximum number of processors to use (Default = 4)", type = int, default=4)
@@ -105,9 +101,9 @@ for i in range(0, totjobs):
 			ns.write(" skesa --cores " + str(threadsper) + " --memory " + str(memper) + " --fastq " + fs + " " + rs + " >" + prefix + ".fasta 2>" + prefix + "_skesa.log &&")
 			ns.write(" quast.py --threads " + str(threadsper) + " -o " + prefix + " --min-contig 1 -l \"" + prefix + "\" --contig-thresholds 500,1000 " + prefix + ".fasta && tail -n 1 " + prefix + "/transposed_report.tsv >>assembly_stats_nohead.tsv")
 	if args.no_qc == False:
-		ns.write(" && bbmap.sh nodisk ref=" + prefix + ".fasta in1=" + fs + " in2=" + rs + " covstats=" + prefix + "_covstats.txt t=" + str(threadsper) + " &>" + prefix + "_bbmap.log")
+		ns.write(" && bbmap.sh -Xmx"+ str(memper) + "g nodisk ref=" + prefix + ".fasta in1=" + fs + " in2=" + rs + " covstats=" + prefix + "_covstats.txt t=" + str(threadsper) + " &>" + prefix + "_bbmap.log")
 	if args.amr:
-		ns.write(" && abricate --db ncbi --mincov " + str(args.mincov) + " --minid " + str(args.minid) + " --threads " +str(threadsper) + " " + prefix + ".fasta >" + prefix + "_abricate_ncbi.tsv 2>" + prefix + "_abricate_ncbi.log")
+		ns.write(" && amrfinder --threads " +str(threadsper) + " -n " + prefix + ".fasta >" + prefix + "_amrfinder.tsv 2>" + prefix + "_amrfinder.log")
 	ns.write(";\n")
 
 ns.close()
@@ -121,35 +117,42 @@ ss.write("#!/bin/bash \n")
 ss.write("\n")
 ss.write("export PATH=/workdir/miniconda3/bin:$PATH\n\n")
 ss.write("source activate bacWGS\n\n")
-if args.trim == True:
-	ss.write("echo \"trimmomatic $(trimmomatic -version)\" >>software_versions_" + strT + ".txt\n")
-if args.spades == True:
-	ss.write("spades.py -v >>software_versions_" + strT + ".txt\n")
-else:
-	ss.write("skesa -v >>software_versions_" + strT + ".txt\n")
-ss.write("quast.py -v >>software_versions_" + strT + ".txt\n")
 ss.write("\nperl_fork_univ.pl " + fn1 + " " + str(njobs) + " &>" + fn1 + ".log \n")
 ss.write("(head -n 1 " + prefs[0] + "/transposed_report.tsv && cat assembly_stats_nohead.tsv) >assembly_stats.tsv && rm assembly_stats_nohead.tsv\n")
+if args.trim == True:
+	ss.write("\necho \"trimmomatic $(trimmomatic -version)\" >>software_versions_" + strT + ".txt\n")
+	ss.write("mkdir Trimmomatic_output && mv trim* Trimmomatic_output\n")
+if args.spades == True:
+	ss.write("\nspades.py -v >>software_versions_" + strT + ".txt\n")
+	ss.write("mkdir SPAdes_logs && mv *_spades.log SPAdes_logs\n")
+else:
+	ss.write("\nskesa -v >>software_versions_" + strT + ".txt\n")
+	ss.write("mkdir SKESA_logs && mv *_skesa.log SKESA_logs\n")
+ss.write("\nquast.py -v >>software_versions_" + strT + ".txt\n")
 if args.no_qc == False:
 	ss.write("\nbbmap.sh --version 2>&1 >/dev/null| sed -n -e 's/^.*BBMap version /BBMap /p' >>software_versions_" + strT + ".txt\n")
 	ss.write("echo -e \"Isolate\tTotal Length\tContigs\tN50\tMapped Coverage\tInsert Size\" >AssemblyQC_" + strT + ".tsv\n")
 	ss.write("for s in " + ' '.join(prefs) + "; do i=$(grep $s assembly_stats.tsv |awk '{print $1,\"\t\",$8,\"\t\",$6,\"\t\",$10}');\n j=$(grep \"Average coverage\" ${s}_bbmap.log |cut -d$'\t' -f 2);\n k=$(grep \"insert size avg\" ${s}_bbmap.log |cut -d$'\t' -f 2);\n echo -e \"$i\t$j\t$k\";done >>AssemblyQC_" + strT + ".tsv\n")
+	ss.write("mkdir BBMap_output && mv *_bbmap.log BBMap_output && mv *_covstats.txt BBMap_output\n")
 if args.amr:
-	ss.write("\nabricate -v >>software_versions_" + strT + ".txt\n")
-	abrfiles = [p + "_abricate_ncbi.tsv" for p in prefs]
-	ss.write("make_amr_table.py " + args.amr_table + " " + ' '.join(abrfiles) + " >ARG_table_" + strT + ".tsv\n")
-
+	ss.write("\nconda list|grep \"amrfinder\"|tr -s ' ' |cut -d \" \" -f 1,2 >>software_versions_" + strT + ".txt\n")
+	ss.write("echo \"AMRFinder database$(ls -l $(which amrfinder|sed 's/amrfinder/data/')|grep \"latest\"|cut -d \">\" -f 2)\" >>software_versions_" + strT + ".txt\n")
+	amrfiles = [p + "_amrfinder.tsv" for p in prefs]
+	ss.write("make_amr_table.py " +  ' '.join(amrfiles) + " >ARG_table_" + strT + ".tsv\n")
+	ss.write("mkdir AMRFinder_output && mv *amrfinder* AMRFinder_output\n")
 if args.salm_sero:
 	ss.write("\nsistr -V >>software_versions_" + strT + ".txt\n")
 	fastas = [p + ".fasta" for p in prefs]
-	ss.write("\nsistr --qc -f tab -t " + str(ncpus) + " -o Salm_seros_sistr_" + strT + " " + ' '.join(fastas) + " 2>Salm_seros_sistr_" + strT + ".log\n")
+	ss.write("sistr --qc -f tab -t " + str(ncpus) + " -o Salm_seros_sistr_" + strT + " " + ' '.join(fastas) + " 2>Salm_seros_sistr_" + strT + ".log\n")
 	ss.write("cut -d$'\t' -f 7,14,15 Salm_seros_sistr_" + strT + ".tab >SALM_sero_" + strT + ".tsv\n")
+	ss.write("mkdir SISTR_output && mv Salm_seros_sistr_* SISTR_output\n")
 if args.ecol_sero:
 	ss.write("\nectyper -V >>software_versions_" + strT + ".txt\n")
 	fastas = [p + ".fasta" for p in prefs]
-	ss.write("\nectyper -i " + ','.join(fastas) + " --cores " + str(ncpus) + " --verify -o ectyper_out_" + strT + " &>ectyper_" + strT + ".log\n")
+	ss.write("ectyper -i " + ','.join(fastas) + " --cores " + str(ncpus) + " --verify -o ectyper_out_" + strT + " &>ectyper_" + strT + ".log\n")
 	ss.write("cut -d$'\t' -f 1,2,3 ectyper_out_" + strT + "/output.tsv >ECOL_sero_" + strT + ".tsv\n")
-ss.write("conda deactivate")
+	ss.write("mv ectyper_" + strT + ".log ectyper_out_" + strT + "\n")
+ss.write("\nconda deactivate")
 ss.close()
 call(["chmod", "u+x", fn2])
 
