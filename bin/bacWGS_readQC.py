@@ -99,4 +99,13 @@ for file in fqc_files:
 sys.stdout.write("\n")
 call(["fastqc", "--version"], stdout=sys.stdout)
 
-
+c = open("tmp_cleanup", 'w')
+c.write("mkdir FastQC_output\n")
+for i in args.Fastqs:
+	s = i.split(sep=".")[0]
+	c.write("rm -r " + s + "_fastqc && mv " + s + "_fastqc.html FastQC_output/ && mv " + s + "_fastqc.zip FastQC_output/\n")  
+c.write("mv fastqc_progress.log FastQC_output/")
+c.close()
+call(["chmod", "u+x", "tmp_cleanup"])
+call(["sh", "tmp_cleanup"])
+call(["rm", "tmp_cleanup"])
