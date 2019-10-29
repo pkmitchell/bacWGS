@@ -35,4 +35,4 @@ If reads meet QC standards, proceed using the forward read only as input for bac
  sistr_cmd 1.0.2 (only needed for _Salmonella_ serotyping)\
  ectyper 0.8.1 (only needed for _E. coli_ serotyping)\
  Trimmomatic 0.39 (only needed for trimming option)\
- SPAdes 3.13.0 (only needed if you want to use it instead of SKESA)\
+ SPAdes 3.13.0 (only needed if you want to use it instead of SKESA)
